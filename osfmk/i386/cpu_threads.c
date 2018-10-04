@@ -1025,9 +1025,11 @@ x86_validate_topology(void)
      *  - max_ncpus:  max number of processors that will be started 
      */
     nCPUs = topoParms.nPackages * topoParms.nLThreadsPerPackage;
-    if (nCPUs != real_ncpus)
-	panic("x86_validate_topology() %d threads but %d registered from MADT",
+    if (nCPUs != real_ncpus){
+        kprintf("x86_validate_topology() %d threads but %d registered from MADT",
 	      nCPUs, real_ncpus);
+        return;
+    }
 
     pkg = x86_pkgs;
     while (pkg != NULL) {

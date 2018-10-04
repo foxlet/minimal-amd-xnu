@@ -736,22 +736,30 @@ IOBSDRegistryEntryGetData(void * entry, char * property_name,
     return (NULL);
 }
 
-kern_return_t IOBSDGetPlatformUUID( uuid_t uuid, mach_timespec_t timeout )
-{
-    IOService * resources;
-    OSString *  string;
-
-    resources = IOService::waitForService( IOService::resourceMatching( kIOPlatformUUIDKey ), ( timeout.tv_sec || timeout.tv_nsec ) ? &timeout : 0 );
-    if ( resources == 0 ) return KERN_OPERATION_TIMED_OUT;
-
-    string = ( OSString * ) IOService::getPlatform( )->getProvider( )->getProperty( kIOPlatformUUIDKey );
-    if ( string == 0 ) return KERN_NOT_SUPPORTED;
-
-    uuid_parse( string->getCStringNoCopy( ), uuid );
-
-    return KERN_SUCCESS;
-}
-
+    UUID_DEFINE(default_platform_uuid, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff);
+    
+    kern_return_t IOBSDGetPlatformUUID( uuid_t uuid, mach_timespec_t timeout )
+    {
+        IOService * resources;
+        OSString *  string;
+        
+        resources = IOService::waitForService( IOService::resourceMatching( kIOPlatformUUIDKey ), ( timeout.tv_sec || timeout.tv_nsec ) ? &timeout : 0 );
+        if ( resources == 0 ) {
+            /* kaitek: if no platform uuid has been published, return a fake one. this cannot be published
+             * here because configd might set it at some later time. todo: this should not be necessary in
+             * the event that pseudo efi nvram is implemented. */
+            bcopy(default_platform_uuid, uuid, sizeof (default_platform_uuid));
+            return KERN_SUCCESS;
+        }
+        
+        string = ( OSString * ) IOService::getPlatform( )->getProvider( )->getProperty( kIOPlatformUUIDKey );
+        if ( string == 0 ) return KERN_NOT_SUPPORTED;
+        
+        uuid_parse( string->getCStringNoCopy( ), uuid );
+        
+        return KERN_SUCCESS;
+    }
+    
 } /* extern "C" */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */

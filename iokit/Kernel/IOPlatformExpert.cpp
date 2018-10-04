@@ -798,13 +798,19 @@ boolean_t PEGetMachineName( char * name, int maxLength )
 	return( false );
 }
 
-boolean_t PEGetModelName( char * name, int maxLength )
-{
-    if( gIOPlatform)
-	return( gIOPlatform->getModelName( name, maxLength ));
-    else
-	return( false );
-}
+    boolean_t PEGetModelName( char * name, int maxLength )
+    {
+        OSData *prop;
+        
+        /* Eureka: Get the model name directly from property instead of calling getModelName(). */
+        prop = (OSData *) IOService::getPlatform()->getProvider()->getProperty(gIODTModelKey);
+        if (prop) {
+            strlcpy(name, (const char *) prop->getBytesNoCopy(), maxLength - 1);
+            return true;
+        }
+        
+        return false;
+    }
 
 int PEGetPlatformEpoch(void)
 {

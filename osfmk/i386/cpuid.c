@@ -371,7 +371,7 @@ get_amd_cache_info(i386_cpu_info_t *info_p)
         info_p->cpuid_cores_per_package = cores  / logical;
     }
     
-    info_p->cpuid_logical_per_package = cores;
+    info_p->cpuid_logical_per_package = cores;//cores;
     
     cpuid_fn(0x80000006, reg);
     uint32_t L3ULinesPerTag = bitfield32(reg[edx], 11, 8);
@@ -466,25 +466,6 @@ get_amd_cache_info(i386_cpu_info_t *info_p)
                     
                 case 4:
                 {
-                    /*
-                     //Dev Emulate TEST Code
-                     type = 3 == 3 ? L3U : Lnone;
-                     cache_byte = 8; //4=2MB 8=4MB 12=6MB 16=8MB
-                     cache_linesize = 64;
-                     asso = 12;
-                     cache_associativity = amdGetAssociativity(asso);
-                     cache_partitions = 1;
-                     cache_size = cache_byte * 512 * 1024;
-                     cache_sets = cache_size / (cache_associativity * cache_linesize);
-                     info_p->cache_size[L3U] = cache_size;
-                     info_p->cache_sharing[L3U] = cores;
-                     info_p->cache_partitions[L3U] = cache_partitions;
-                     linesizes[L3U] = cache_linesize;
-                     info_p->cache_linesize = linesizes[L3U];
-                     colors = ( cache_linesize * cache_sets ) >> 12;
-                     if ( colors > vm_cache_geometry_colors )
-                     vm_cache_geometry_colors = colors;
-                     */
                     if (L3ULinesPerTag)
                     {
                         type = 3 == 3 ? L3U : Lnone;
@@ -853,6 +834,7 @@ cpuid_set_generic_info(i386_cpu_info_t *info_p)
 {
 	uint32_t	reg[4];
         char            str[128], *p;
+    char arg[16];
 
 	DBG("cpuid_set_generic_info(%p)\n", info_p);
 
@@ -933,6 +915,7 @@ cpuid_set_generic_info(i386_cpu_info_t *info_p)
             assoc = 128;
         else if (assoc == 0xF)
             assoc = 0xFFFF;
+        //info_p->cpuid_cache_L2_associativity = assoc;
         info_p->cpuid_cache_L2_associativity = bitfield32(reg[ecx],15,12);
         info_p->cpuid_cache_size       = bitfield32(reg[ecx],31,16);
         cpuid_fn(0x80000008, reg);
@@ -941,6 +924,7 @@ cpuid_set_generic_info(i386_cpu_info_t *info_p)
         info_p->cpuid_address_bits_virtual =
         bitfield32(reg[eax],15, 8);
     }
+    
     
 	/*
 	 * Get processor signature and decode
@@ -967,14 +951,7 @@ cpuid_set_generic_info(i386_cpu_info_t *info_p)
     info_p->cpuid_extmodel  = bitfield32(reg[eax], 19, 16);
     info_p->cpuid_extfamily = bitfield32(reg[eax], 27, 20);
     info_p->cpuid_brand     = bitfield32(reg[ebx],  7,  0);
-    
-    /** Sinetek: AMD does not like the way the PAT (Page Attribute Table) is set up. **/
-    if (IsIntelCPU())
-    {
         info_p->cpuid_features  = quad(reg[ecx], reg[edx]);
-    } else {
-        info_p->cpuid_features  = quad(reg[ecx], reg[edx]) & ~CPUID_FEATURE_PAT;
-    }
     
     /* Get "processor flag"; necessary for microcode update matching */
     
@@ -1142,7 +1119,6 @@ cpuid_set_generic_info(i386_cpu_info_t *info_p)
         
     }
     
-
     if (info_p->cpuid_model >= CPUID_MODEL_IVYBRIDGE) {
         /*
          * Leaf7 Features:
@@ -1155,9 +1131,31 @@ cpuid_set_generic_info(i386_cpu_info_t *info_p)
         DBG("  ECX           : 0x%x\n", reg[ecx]);
     }
     
+    if (IsAmdCPU() && info_p->cpuid_family >= 21) {
+        /*
+         * Leaf7 Features:
+         */
+        cpuid_fn(0x7, reg);
+        info_p->cpuid_leaf7_features = quad(reg[ecx], reg[ebx])  & ~CPUID_LEAF7_FEATURE_SMAP;
+        
     DBG(" Feature Leaf7:\n");
     DBG("  EBX           : 0x%x\n", reg[ebx]);
     DBG("  ECX           : 0x%x\n", reg[ecx]);
+    }
+    
+    
+    if (info_p->cpuid_max_basic >= 0x15) {
+        /*
+         * TCS/CCC frequency leaf:
+         */
+        cpuid_fn(0x15, reg);
+        info_p->cpuid_tsc_leaf.denominator = reg[eax];
+        info_p->cpuid_tsc_leaf.numerator   = reg[ebx];
+        
+        DBG(" TSC/CCC Information Leaf:\n");
+        DBG("  numerator     : 0x%x\n", reg[ebx]);
+        DBG("  denominator   : 0x%x\n", reg[eax]);
+    }
     
     return;
 }
@@ -1170,6 +1168,9 @@ cpuid_set_cpufamily(i386_cpu_info_t *info_p)
     switch (info_p->cpuid_family) {
         case 6:
             switch (info_p->cpuid_model) {
+                case 15:
+                    cpufamily = CPUFAMILY_INTEL_MEROM;
+                    break;
                 case 23:
                     cpufamily = CPUFAMILY_INTEL_PENRYN;
                     break;
@@ -1426,7 +1427,6 @@ leaf7_feature_map[] = {
     {CPUID_LEAF7_FEATURE_BMI2,     "BMI2"},
     {CPUID_LEAF7_FEATURE_INVPCID,  "INVPCID"},
     {CPUID_LEAF7_FEATURE_RTM,      "RTM"},
-    {CPUID_LEAF7_FEATURE_SMAP,     "SMAP"},
     {CPUID_LEAF7_FEATURE_RDSEED,   "RDSEED"},
     {CPUID_LEAF7_FEATURE_ADX,      "ADX"},
     {CPUID_LEAF7_FEATURE_IPT,      "IPT"},
@@ -1586,11 +1586,6 @@ cpuid_family(void)
 uint32_t
 cpuid_cpufamily(void)
 {
-    if (IsAmdCPU())
-    {
-        return CPUFAMILY_INTEL_PENRYN;
-    }
-    
     return cpuid_info()->cpuid_cpufamily;
 }
 
@@ -1665,7 +1660,14 @@ cpuid_init_vmm_info(i386_vmm_info_t *info_p)
     bcopy((char *)&reg[ecx], &info_p->cpuid_vmm_vendor[4], 4);
     bcopy((char *)&reg[edx], &info_p->cpuid_vmm_vendor[8], 4);
     info_p->cpuid_vmm_vendor[12] = '\0';
-
+    /*
+     if (0 == strcmp(info_p->cpuid_vmm_vendor, CPUID_VMM_ID_VMWARE)) {
+     info_p->cpuid_vmm_family = CPUID_VMM_FAMILY_VMWARE;
+     } else if (0 == strcmp(info_p->cpuid_vmm_vendor, CPUID_VMM_ID_PARALLELS)) {
+     info_p->cpuid_vmm_family = CPUID_VMM_FAMILY_PARALLELS;
+     } else {
+     info_p->cpuid_vmm_family = CPUID_VMM_FAMILY_UNKNOWN;
+     } */
     info_p->cpuid_vmm_family = CPUID_VMM_FAMILY_VMWARE;
 	/* VMM generic leaves: https://lkml.org/lkml/2008/10/1/246 */
 	if (max_vmm_leaf >= 0x40000010) {
@@ -1702,4 +1704,3 @@ cpuid_vmm_family(void)
 {
 	return cpuid_vmm_info()->cpuid_vmm_family;
 }
-

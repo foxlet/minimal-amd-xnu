@@ -465,7 +465,7 @@ init_fpu(void)
 	 * AVX/YMM registers
 	 */
 	if (cpuid_features() & CPUID_FEATURE_XSAVE) {
-		cpuid_xsave_leaf_t *xs0p = &cpuid_info()->cpuid_xsave_leaf[0];
+		cpuid_xsave_leaf_t *xs0p = &cpuid_info()->cpuid_xsave_leaf;
 #if !defined(RC_HIDE_XNU_J137)
 		if (is_avx512_enabled &&
 		    (xs0p->extended_state[eax] & XFEM_ZMM) == XFEM_ZMM) {

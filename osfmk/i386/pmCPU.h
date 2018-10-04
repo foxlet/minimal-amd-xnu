@@ -125,8 +125,6 @@ typedef struct {
 extern pmDispatch_t	*pmDispatch;
 
 void power_management_init(void);
-void pmKextRegister(uint32_t version, pmDispatch_t *cpuFuncs,
-		    pmCallBacks_t *callbacks);
 void pmUnRegister(pmDispatch_t *cpuFuncs);
 void pmCPUStateInit(void);
 uint64_t pmCPUGetDeadline(struct cpu_data *cpu);

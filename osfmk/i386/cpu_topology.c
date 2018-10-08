@@ -37,6 +37,7 @@
 #include <i386/cpu_data.h>
 #include <i386/lapic.h>
 #include <i386/machine_routines.h>
+#include <stddef.h>
 
 __private_extern__ void qsort(
     void * array,

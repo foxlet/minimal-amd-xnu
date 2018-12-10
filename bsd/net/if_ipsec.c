@@ -170,6 +170,7 @@ struct ipsec_pcb {
 	mbuf_svc_class_t	ipsec_output_service_class;
 	char				ipsec_if_xname[IFXNAMSIZ];
 	char				ipsec_unique_name[IFXNAMSIZ];
+	bool				ipsec_needs_netagent;
 	// PCB lock protects state fields, like ipsec_kpipe_enabled
 	decl_lck_rw_data(, ipsec_pcb_lock);
 
@@ -197,7 +198,6 @@ struct ipsec_pcb {
 	u_int32_t			ipsec_tx_fsw_ring_size;
 	u_int32_t			ipsec_rx_fsw_ring_size;
 	bool				ipsec_use_netif;
-	bool				ipsec_needs_netagent;
 #endif // IPSEC_NEXUS
 };
 

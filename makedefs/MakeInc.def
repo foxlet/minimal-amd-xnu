@@ -113,7 +113,7 @@ GENASSYM_KCC = $(CC)
 # Compiler warning flags
 #
 
-USE_WERROR := 1
+USE_WERROR := 0
 ifneq ($(BUILD_WERROR),)
 USE_WERROR := $(BUILD_WERROR)
 endif

@@ -204,6 +204,8 @@
 #define CPUID_MWAIT_EXTENSION	_Bit(0)	/* enumeration of WMAIT extensions */
 #define CPUID_MWAIT_BREAK	_Bit(1)	/* interrupts are break events	   */
 
+#define CPUID_MODEL_YONAH		0x0E
+#define CPUID_MODEL_MEROM		0x0F
 #define CPUID_MODEL_PENRYN		0x17
 #define CPUID_MODEL_NEHALEM		0x1A
 #define CPUID_MODEL_FIELDS		0x1E	/* Lynnfield, Clarksfield */
@@ -228,13 +230,6 @@
 #define CPUID_MODEL_SKYLAKE_ULT		0x4E
 #define CPUID_MODEL_SKYLAKE_ULX		0x4E
 #define CPUID_MODEL_SKYLAKE_DT		0x5E
-#if !defined(RC_HIDE_XNU_J137)
-#define CPUID_MODEL_SKYLAKE_W		0x55
-#endif /* not RC_HIDE_XNU_J137 */
-#define CPUID_MODEL_KABYLAKE            0x8E
-#define CPUID_MODEL_KABYLAKE_ULT        0x8E
-#define CPUID_MODEL_KABYLAKE_ULX        0x8E
-#define CPUID_MODEL_KABYLAKE_DT         0x9E
 
 #define CPUID_VMM_FAMILY_UNKNOWN	0x0
 #define CPUID_VMM_FAMILY_VMWARE		0x1
@@ -420,7 +415,7 @@ typedef struct {
 	cpuid_xsave_leaf_t	*cpuid_xsave_leafp;
 	uint64_t		cpuid_leaf7_features;
 	cpuid_tsc_leaf_t	cpuid_tsc_leaf;
-	cpuid_xsave_leaf_t	cpuid_xsave_leaf[2];
+	cpuid_xsave_leaf_t    cpuid_xsave_leaf[2];
 } i386_cpu_info_t;
 
 #ifdef MACH_KERNEL_PRIVATE
@@ -463,11 +458,26 @@ extern i386_vmm_info_t	*cpuid_vmm_info(void);
 extern uint32_t		cpuid_vmm_family(void);
 #endif
 
+extern void     FixAMDTLB(void);
+extern boolean_t	IsAmdCPU(void);
+extern boolean_t	IsIntelCPU(void);
+extern uint32_t extractBitField(uint32_t inField, uint32_t width, uint32_t offset);
+extern uint32_t getBitFieldWidth(uint32_t number);
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* ASSEMBLER */
+
+#define CPU_FAMILY_PENTIUM_M	(0x6)
+#define CPU_FAMILY_PENTIUM_4	(0xF)
+#define CPU_FAMILY_PENTIUM_4_M2 (0xF)
+#define CPU_FAMILY_AMD_PHENOM	(0x10)
+#define CPU_FAMILY_AMD_SHANGHAI	(0x11)
+#define CPU_FAMILY_I5		(0x1E)
+#define CPU_FAMILY_I9		(0x2C)
+#define CPU_FAMILY_SANDY	(0x2A)
 
 #endif /* __APPLE_API_PRIVATE */
 #endif /* _MACHINE_CPUID_H_ */

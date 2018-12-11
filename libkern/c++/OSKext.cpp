@@ -10264,6 +10264,22 @@ finish:
     return(result);
 }
 
+/*********************************************************************
+ *********************************************************************/
+ OSSymbol* IOSKCopyKextIdentifierWithAddress(vm_address_t address);
+ OSSymbol* IOSKCopyKextIdentifierWithAddress(vm_address_t address) {
+    OSSymbol* sym = NULL;
+    OSKext* kext = OSKext::lookupKextWithAddress(address);
+    if (kext) {
+        sym = (OSSymbol*)kext->getIdentifier();
+        if (sym) {
+            sym->retain();
+        }
+        kext->release();
+    }
+    return sym;
+ }
+ 
 #if PRAGMA_MARK
 #pragma mark Personalities (IOKit Drivers)
 #endif
